@@ -1,0 +1,62 @@
+mql5
+// Advanced Range Breakout MT5
+// Expert Advisor for breakout trading in the forex market
+
+// Input parameters
+input double LotSize = 0.01; // Initial lot size
+input double TrailingStop = 20; // Trailing stop loss in pips
+input double BreakoutLevel = 0.1; // Breakout level in percentage
+
+// Global variables
+double OpenLevel;
+double StopLossLevel;
+double TakeProfitLevel;
+
+// Initialization function
+void OnInit()
+{
+   // Calculate breakout levels
+   OpenLevel = Ask + (Ask - Bid) * BreakoutLevel / 100;
+   StopLossLevel = OpenLevel - TrailingStop * Point;
+   TakeProfitLevel = OpenLevel + TrailingStop * Point;
+}
+
+// Trading function
+void OnTick()
+{
+   // Check if price has moved over breakout level
+   if (Bid > OpenLevel)
+   {
+      // Place a buy order
+      int ticket = OrderSend(Symbol(), OP_BUY, LotSize, Ask, 0, StopLossLevel, TakeProfitLevel, 'Advanced Range Breakout MT5', 0, 0, Green);
+      
+      // Check if order was placed successfully
+      if (ticket > 0)
+      {
+         Print('Buy order placed at ', Ask);
+      }
+      else
+      {
+         Print('Error placing buy order: ', GetLastError());
+      }
+   }
+}
+
+// Trailing stop loss function
+void OnTrade()
+{
+   // Retrieve the current open position
+   for (int i = 0; i < OrdersTotal(); i++)
+   {
+      if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         // Check if the position is a buy order and has reached the break-even point
+         if (OrderType() == OP_BUY && OrderOpenPrice() > OpenLevel)
+         {
+            // Adjust the stop loss level
+            StopLossLevel = OrderOpenPrice() - TrailingStop * Point;
+            OrderModify(OrderTicket(), 0, StopLossLevel, TakeProfitLevel, 0);
+         }
+      }
+   }
+}
